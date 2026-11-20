@@ -141,6 +141,8 @@ input[type=date].field{font-family:var(--f-mono);font-size:13px}
 .cl{list-style:none;margin:0;padding:0 0 0 2px;display:flex;flex-direction:column;gap:3px}
 .cl label{display:flex;align-items:flex-start;gap:8px;font-size:14px;cursor:pointer}
 .cl label span{overflow-wrap:anywhere}
+.cl-more{align-self:flex-start;background:none;border:0;padding:2px 0;font-size:12px;font-weight:600;color:var(--muted)}
+.cl-more:hover{color:var(--accent);text-decoration:underline}
 .cl li.ok span{color:var(--muted);text-decoration:line-through}
 .check.sm{width:16px;height:16px;border-width:1.5px;border-radius:4px;margin-top:2px;flex:none}
 .check.sm:checked::after{width:7px;height:4px}
@@ -367,6 +369,7 @@ const U=Object.assign({theme:null,sub:null,person:null,q:"",group:true,cols:true
 U.q="";
 const saveUI=()=>lsSet("tdp-ui",{theme:U.theme,sub:U.sub,person:U.person,group:U.group,cols:U.cols,showDone:U.showDone});
 let addUrgent=false;
+const showCl=new Set(lsGet("tdp-showcl",[]));
 
 /* ---------- Utilitaires ---------- */
 const themeOf=id=>S.themes.find(t=>t.id===id);
@@ -482,7 +485,10 @@ function taskHTML(t,drag){
       ${t.notes?`<span class="tnotes">${esc(t.notes)}</span>`:""}
       ${chips.length?`<span class="meta">${chips.join("")}</span>`:""}
     </button>
-    ${cl.length?`<ul class="cl">${cl.map(i=>`<li class="${i.done?"ok":""}"><label><input type="checkbox" class="check sm" data-ck="${esc(t.id)}|${esc(i.id)}" ${i.done?"checked":""}><span>${esc(i.text)}</span></label></li>`).join("")}</ul>`:""}
+    ${(()=>{if(!cl.length)return "";const open=showCl.has(t.id),vis=open?cl:cl.filter(i=>!i.done);
+      const items=vis.length?`<ul class="cl">${vis.map(i=>`<li class="${i.done?"ok":""}"><label><input type="checkbox" class="check sm" data-ck="${esc(t.id)}|${esc(i.id)}" ${i.done?"checked":""}><span>${esc(i.text)}</span></label></li>`).join("")}</ul>`:"";
+      const more=clDone?`<button type="button" class="cl-more" data-clshow="${esc(t.id)}" aria-expanded="${open}">${open?"Masquer les sous-tâches cochées":(clDone===cl.length?"Toutes les sous-tâches sont cochées · Afficher":"Afficher "+clDone+" cochée"+(clDone>1?"s":""))}</button>`:"";
+      return items+more})()}
     </div>
     <div class="side-meta">
       ${t.assignee?`<span class="who-tag" title="Attribuée à ${esc(t.assignee)}"><span class="av" style="--h:${hue(t.assignee)}">${esc(initials(t.assignee))}</span>${esc(t.assignee)}</span>`:""}
@@ -533,6 +539,9 @@ $("#t-group").addEventListener("click",()=>{U.group=!U.group;saveUI();render()})
 $("#t-cols").addEventListener("click",()=>{U.cols=!U.cols;saveUI();render()});
 $("#t-done").addEventListener("click",()=>{U.showDone=!U.showDone;saveUI();render()});
 $("#list").addEventListener("click",e=>{
+  const sc=e.target.closest("[data-clshow]");
+  if(sc){const id=sc.dataset.clshow;showCl.has(id)?showCl.delete(id):showCl.add(id);lsSet("tdp-showcl",[...showCl]);renderList();
+    const nb=$("#list").querySelector(`[data-clshow="${CSS.escape(id)}"]`);nb&&nb.focus();return}
   if(e.target.id==="show-done-inline"){U.showDone=true;saveUI();render();return}
   const ed=e.target.closest("[data-edit]");if(ed)openTask(ed.dataset.edit);
 });
