@@ -170,7 +170,7 @@ input[type=date].field{font-size:13px}
 .cledit .item{display:flex;align-items:center;gap:8px}
 .cledit .item .field{flex:1;min-width:0}
 .board{display:flex;flex-direction:column;gap:20px}
-.board.cols{display:grid;grid-template-columns:repeat(var(--n,3),minmax(230px,1fr));gap:12px;align-items:start;overflow-x:auto;padding-bottom:4px}
+.board.cols{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:12px;align-items:start}
 .board.cols .group{padding:12px 8px 8px}
 .board.cols .ghead h3{font-size:16px}
 .board .meta .chip:not(.sub){display:none}
@@ -592,7 +592,7 @@ function renderList(){
     const groups=[];
     sortedThemes().forEach(t=>{const g=items.filter(x=>x.themeId===t.id);if(g.length)groups.push([t,g])});
     const none=items.filter(x=>!themeOf(x.themeId));if(none.length)groups.push([null,none]);
-    html+=`<div class="board${U.cols?" cols":""}" style="--n:${Math.max(1,groups.length)}">`+groups.map(([t,g])=>{const key="t:"+(t?t.id:"none"),subs=t?(t.subs||[]).map(x=>x.name):[];
+    html+=`<div class="board${U.cols?" cols":""}" style="--n:${Math.min(3,Math.max(1,groups.length))}">`+groups.map(([t,g])=>{const key="t:"+(t?t.id:"none"),subs=t?(t.subs||[]).map(x=>x.name):[];
       return `<section class="group">${ghead(key,`<span class="dot" style="--c:${t?esc(t.color):"var(--muted)"}"></span>`,t?t.name:"Sans thème",g.length,subs.length?subs.join(" · "):"")}${folded.has(key)?"":`<ul class="list">${g.sort(cmpManual).map(t=>taskHTML(t,true)).join("")}</ul>`}</section>`}).join("")+"</div>";
   }else html+=`<section class="group">${ghead("others","","Autres tâches",items.length,"Toutes les tâches non urgentes.")}${folded.has("others")?"":`<ul class="list">${items.map(t=>taskHTML(t)).join("")}</ul>`}</section>`;
   if(doneHidden)html+=`<div class="donebar">${doneHidden} tâche${doneHidden>1?"s":""} terminée${doneHidden>1?"s":""} masquée${doneHidden>1?"s":""} · <button class="linkbtn" type="button" id="show-done-inline">Afficher</button></div>`;
