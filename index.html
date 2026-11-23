@@ -164,6 +164,8 @@ input[type=date].field{font-family:var(--f-mono);font-size:13px}
 .board.cols .task{grid-template-columns:auto minmax(0,1fr);gap:10px;padding:10px 12px}
 .board.cols .side-meta{grid-column:2;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px}
 .board.cols .tnotes{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.recur-hint{margin:0;align-self:end;font-size:13px;color:var(--muted);min-height:1em}
+.chip.rec{background:transparent;border:1px dashed color-mix(in oklab,var(--ok) 60%,transparent);color:color-mix(in oklab,var(--ok) 80%,var(--ink));font-weight:500}
 .list.calm{padding:14px 16px;color:var(--muted);font-size:14px}
 .empty{padding:36px 20px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px}
 .empty strong{display:block;color:var(--ink);font-family:var(--f-display);font-size:18px;margin-bottom:4px}
@@ -286,6 +288,17 @@ textarea.field{min-height:80px;resize:vertical}
       <label>Sous-thème<select class="field" id="e-sub"></select></label>
       <label>Attribuée à<input class="field" id="e-who" list="people-list" placeholder="Personne (pour info)"></label>
       <label>Échéance<input class="field" id="e-due" type="date"></label>
+      <label>Répétition<select class="field" id="e-recur">
+        <option value="">Ne se répète pas</option>
+        <option value="1d">Tous les jours</option>
+        <option value="1w">Toutes les semaines</option>
+        <option value="2w">Toutes les 2 semaines</option>
+        <option value="1m">Tous les mois</option>
+        <option value="3m">Tous les trimestres</option>
+        <option value="6m">Tous les 6 mois</option>
+        <option value="1y">Tous les ans</option>
+      </select></label>
+      <p class="recur-hint" id="e-recur-hint"></p>
     </div>
     <div class="creator" id="e-new" hidden></div>
     <div class="row">
@@ -396,6 +409,25 @@ function dueInfo(due){
   else if(diff===1){txt="demain"}
   return {txt,cls,late:diff<0};
 }
+const RECUR={"1d":{n:1,u:"d",short:"Quotidienne",label:"tous les jours"},"1w":{n:7,u:"d",short:"Hebdo",label:"toutes les semaines"},
+  "2w":{n:14,u:"d",short:"Toutes les 2 sem.",label:"toutes les 2 semaines"},"1m":{n:1,u:"m",short:"Mensuelle",label:"tous les mois"},
+  "3m":{n:3,u:"m",short:"Trimestrielle",label:"tous les trimestres"},"6m":{n:6,u:"m",short:"Semestrielle",label:"tous les 6 mois"},
+  "1y":{n:12,u:"m",short:"Annuelle",label:"tous les ans"}};
+function nextDue(fromISO,code){
+  const r=RECUR[code];const d=new Date((fromISO||todayISO())+"T12:00:00");
+  if(r.u==="d")d.setDate(d.getDate()+r.n);
+  else{const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+r.n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last))}
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+/* Quand une tâche récurrente est terminée, on crée la suivante (une seule fois) */
+function spawnNext(t){
+  if(!t.recur||!RECUR[t.recur])return null;
+  if(t.nextId&&S.tasks.some(x=>x.id===t.nextId))return null;
+  const n={...t,id:uid(),done:false,doneAt:null,nextId:null,example:false,createdAt:Date.now(),
+    due:nextDue(t.due,t.recur),checklist:(t.checklist||[]).map(i=>({...i,done:false}))};
+  save("tasks",n);showCl.delete(n.id);return n;
+}
+function fmtDate(iso){return new Date(iso+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"long"})}
 function initials(n){return String(n).trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()}
 const AV=["#222E50","#588B8B","#874000","#EF6461","#5A6893"];const avColor=n=>AV[hue(n)%AV.length];
 function hue(n){let h=0;for(const c of String(n).toLowerCase())h=(h*31+c.charCodeAt(0))%360;return h}
@@ -485,6 +517,7 @@ function taskHTML(t,drag){
   if(t.urgent&&!t.done)chips.push('<span class="pill-u">Urgent</span>');
   if(th)chips.push(`<span class="chip" style="--c:${esc(th.color)}">${esc(th.name)}</span>`);
   if(sb)chips.push(`<span class="chip sub" style="--c:${esc(sb.color||th.color)}">${esc(sb.name)}</span>`);
+  if(t.recur&&RECUR[t.recur])chips.push(`<span class="chip rec" title="Tâche récurrente : la suivante est créée quand vous cochez celle-ci">↻ ${esc(RECUR[t.recur].short)}</span>`);
   if(cl.length)chips.push(`<span class="prog${clDone===cl.length?" full":""}" title="Sous-tâches terminées"><span class="bar"><span style="width:${Math.round(clDone/cl.length*100)}%"></span></span>${clDone}/${cl.length}</span>`);
   return `<li class="task${t.urgent&&!t.done?" urgent":""}${t.done?" done":""}">
     <div class="lead">${drag&&!t.done?`<button type="button" class="handle" data-drag="${esc(t.id)}" title="Glisser pour réordonner (ou flèches haut / bas)" aria-label="Déplacer « ${esc(t.title)} » (flèches haut et bas)"><svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></g></svg></button>`:drag?'<span class="handle-sp"></span>':""}
@@ -560,8 +593,10 @@ $("#list").addEventListener("change",e=>{
     save("tasks",{...t,checklist:(t.checklist||[]).map(i=>i.id===iid?{...i,done:e.target.checked}:i)});return}
   const id=e.target.dataset.done;if(!id)return;
   const t=S.tasks.find(x=>x.id===id);if(!t)return;
-  save("tasks",{...t,done:e.target.checked,doneAt:e.target.checked?Date.now():null});
-  if(e.target.checked)toast("Tâche terminée");
+  const upd={...t,done:e.target.checked,doneAt:e.target.checked?Date.now():null};
+  const nx=e.target.checked?spawnNext(t):null;if(nx)upd.nextId=nx.id;
+  save("tasks",upd);
+  if(nx)toast("Terminée · prochaine le "+fmtDate(nx.due));else if(e.target.checked)toast("Tâche terminée");
 });
 
 /* ---------- Création de thème / sous-thème depuis la tâche ---------- */
@@ -689,6 +724,7 @@ function openTask(id){
   const t=S.tasks.find(x=>x.id===id);if(!t)return;editing=id;
   $("#e-title").value=t.title||"";fillThemeSelect($("#e-theme"),t.themeId||"");fillSubSelect($("#e-sub"),t.themeId,t.subId||"");
   $("#e-who").value=t.assignee||"";$("#e-due").value=t.due||"";$("#e-notes").value=t.notes||"";
+  $("#e-recur").value=t.recur&&RECUR[t.recur]?t.recur:"";recurHint();
   eUrgent=!!t.urgent;eDone=!!t.done;eList=JSON.parse(JSON.stringify(t.checklist||[]));renderCl();$("#e-cl-new").value="";$("#e-urgent").setAttribute("aria-pressed",eUrgent);$("#e-done").setAttribute("aria-pressed",eDone);
   closeCreator($("#e-new"));disarm($("#e-delete"),"Supprimer");dlgT.showModal();
 }
@@ -696,12 +732,19 @@ wireCreate($("#e-theme"),$("#e-sub"),$("#e-new"));
 $("#e-urgent").addEventListener("click",()=>{eUrgent=!eUrgent;$("#e-urgent").setAttribute("aria-pressed",eUrgent)});
 $("#e-done").addEventListener("click",()=>{eDone=!eDone;$("#e-done").setAttribute("aria-pressed",eDone)});
 $("#e-cancel").addEventListener("click",()=>dlgT.close());
+function recurHint(){const v=$("#e-recur").value;
+  $("#e-recur-hint").textContent=v?"Quand vous la cochez, la suivante est créée "+RECUR[v].label+(($("#e-due").value)?", à partir de l'échéance.":", à partir d'aujourd'hui."):""}
+$("#e-recur").addEventListener("change",recurHint);$("#e-due").addEventListener("change",recurHint);
 $("#e-save").addEventListener("click",()=>{
   const t=S.tasks.find(x=>x.id===editing);if(!t)return dlgT.close();
   const title=$("#e-title").value.trim();if(!title){$("#e-title").focus();return}
-  save("tasks",{...t,title,themeId:clean($("#e-theme").value),subId:clean($("#e-sub").value),assignee:$("#e-who").value.trim(),
-    due:$("#e-due").value||null,notes:$("#e-notes").value,checklist:(()=>{const v=$("#e-cl-new").value.trim();return v?[...eList,{id:uid(),text:v,done:false}]:eList})(),urgent:eUrgent,done:eDone,doneAt:eDone?(t.doneAt||Date.now()):null,example:false});
-  dlgT.close();toast("Tâche enregistrée");
+  const recur=$("#e-recur").value||null;let due=$("#e-due").value||null;
+  if(recur&&!due)due=todayISO();
+  const upd={...t,title,themeId:clean($("#e-theme").value),subId:clean($("#e-sub").value),assignee:$("#e-who").value.trim(),recur,
+    due,notes:$("#e-notes").value,checklist:(()=>{const v=$("#e-cl-new").value.trim();return v?[...eList,{id:uid(),text:v,done:false}]:eList})(),urgent:eUrgent,done:eDone,doneAt:eDone?(t.doneAt||Date.now()):null,example:false};
+  const nx=(eDone&&!t.done)?spawnNext(upd):null;if(nx)upd.nextId=nx.id;
+  save("tasks",upd);
+  dlgT.close();toast(nx?"Terminée · prochaine le "+fmtDate(nx.due):"Tâche enregistrée");
 });
 function armed(btn,label,onConfirm){
   if(btn.classList.contains("armed")){onConfirm();return}
