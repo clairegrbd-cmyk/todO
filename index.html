@@ -284,10 +284,6 @@ textarea.field{min-height:80px;resize:vertical}
   </aside>
 
   <main class="main">
-    <header class="hello">
-      <h1 id="hello">Bonjour !</h1>
-      <p id="today"></p>
-    </header>
     <div class="summary" id="summary"></div>
 
     <form class="add" id="add-form" autocomplete="off">
@@ -881,9 +877,7 @@ $("#clear-examples").addEventListener("click",e=>armed(e.currentTarget,"Confirme
 }));
 $("#clear-examples").dataset.orig="Effacer les exemples";
 
-(()=>{const n=new Date(),d=n.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  $("#hello").textContent=n.getHours()<18?"Bonjour !":"Bonsoir !";
-  $("#today").textContent=d.charAt(0).toUpperCase()+d.slice(1)+" · on avance une tâche à la fois.";})();
+
 render();init();
 })();
 </script>
