@@ -70,7 +70,7 @@ button{cursor:pointer}
 .stat-card{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:20px;padding:16px 18px;box-shadow:var(--shadow)}
 .stat-card .ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none;background:color-mix(in oklab,var(--c) 13%,var(--surface));color:var(--c)}
 .stat-card b{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1}
-.stat-card span.l{font-size:15px;color:var(--ink)}
+.stat-card span.l{font-size:15px;color:var(--ink);white-space:nowrap}
 
 .add{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .add .title{border:0;background:transparent;font-size:17px;padding:6px 8px;width:100%;outline:none}
@@ -172,7 +172,7 @@ input[type=date].field{font-size:14px}
 .board.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px;align-items:start}
 .board.cols .group{padding:18px 12px 12px}
 .board.cols .ghead h3{font-size:20px}
-.board.cols .meta .chip:not(.sub){display:none}
+.board .meta .chip:not(.sub){display:none}
 .board.cols .task{grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:12px 6px 12px 12px;align-items:start}
 .board.cols .lead,.board.cols .kebab{margin-top:-2px}
 .board.cols .side-meta{grid-column:2;grid-row:2;justify-content:flex-start;gap:10px}
