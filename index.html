@@ -587,11 +587,11 @@ function renderList(){
   let html=`<section class="group urgent-group">${ghead("urgent",'<span class="dot" style="--c:var(--urgent)"></span>',"Urgent",urgent.length,"À traiter en priorité, tous thèmes confondus.")}
     ${folded.has("urgent")?"":urgent.length?`<ul class="list">${urgent.map(t=>taskHTML(t)).join("")}</ul>`:'<div class="list calm">Aucune tâche urgente. Activez « Urgent » sur une tâche pour la faire remonter ici.</div>'}</section>`;
   // Le reste, par thème
-  let items=filtered().filter(t=>!(t.urgent&&!t.done));
+  let items=filtered();
   const doneHidden=U.showDone?0:items.filter(t=>t.done).length;
   if(!U.showDone)items=items.filter(t=>!t.done);
   items.sort(cmp);
-  if(!items.length){box.innerHTML=html+`<div class="empty"><strong>Aucune autre tâche ${U.theme||U.person||U.q?"avec ces filtres":"en cours"}</strong>${doneHidden?doneHidden+" tâche(s) terminée(s) masquée(s).":""}</div>`;return}
+  if(!items.length){box.innerHTML=html+`<div class="empty"><strong>Aucune tâche ${U.theme||U.person||U.q?"avec ces filtres":"en cours"}</strong>${doneHidden?doneHidden+" tâche(s) terminée(s) masquée(s).":""}</div>`;return}
   if(U.group){
     const groups=[];
     sortedThemes().forEach(t=>{const g=items.filter(x=>x.themeId===t.id);if(g.length)groups.push([t,g])});
